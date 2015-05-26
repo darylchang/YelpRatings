@@ -1,5 +1,4 @@
-data/*
-vectors/*
-word2vec.txt
-GoogleNews-vectors-negative300.bin
+/data/*
+/vectors/*
 readbin.c
+word2vec.txt
