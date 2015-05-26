@@ -2,3 +2,4 @@
 /vectors/*
 readbin.c
 word2vec.txt
+*.pyc
