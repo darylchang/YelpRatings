@@ -1,9 +1,11 @@
 from sklearn.metrics import mean_absolute_error
 import numpy as np
 
+def safeLog(x, minval=1e-12):
+    return np.log(x.clip(min=minval))
+
 def crossEntropy(yTrue, yPred):
-    print yPred
-    return -np.sum(yTrue * np.log(yPred))
+    return -np.sum(yTrue * safeLog(yPred))
 
 def makeOneHot(label, dim):
     a = np.zeros(dim)
