@@ -1,5 +1,22 @@
 import json
 from collections import Counter
+from sets import Set
+
+stars = Counter()
+positive = Set()
+negative = Set()
+
+with open('lexicon/negative-words.txt') as neg:
+	for l in neg:
+		if l[0] == ';':
+			continue
+		negative.add(l.strip('\n'))
+
+with open('lexicon/positive-words.txt') as neg:
+	for l in neg:
+		if l[0] == ';':
+			continue
+		positive.add(l.strip('\n'))
 
 def getStarDist():
 	stars = Counter()
