@@ -1,0 +1,2 @@
+Counts for star ratings in reviews
+Rating 1: 1
