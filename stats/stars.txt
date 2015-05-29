@@ -1,2 +1,6 @@
 Counts for star ratings in reviews
-Rating 1: 1
+Rating 5: 579527
+Rating 4: 466599
+Rating 3: 222719
+Rating 1: 159812
+Rating 2: 140608
