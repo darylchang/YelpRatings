@@ -1,0 +1,10 @@
+Average percentage of positive words for 1-star reviews: 0.0272949629885
+Average percentage of positive words for 2-star reviews: 0.0408952053603
+Average percentage of positive words for 3-star reviews: 0.0537504170313
+Average percentage of positive words for 4-star reviews: 0.0668485880738
+Average percentage of positive words for 5-star reviews: 0.0745142560276
+Average percentage of negative words for 1-star reviews: 0.0346657013481
+Average percentage of negative words for 2-star reviews: 0.0283211856939
+Average percentage of negative words for 3-star reviews: 0.0209239466921
+Average percentage of negative words for 4-star reviews: 0.0152639628419
+Average percentage of negative words for 5-star reviews: 0.0122792206539
