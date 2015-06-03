@@ -21,28 +21,34 @@ def readGlove():
     return dct
 
 # Read in the Yelp review data
-def readYelpReviews(numPerLabel=None, useOneHot=False):
+def readYelpReviews(numTotal=None, numPerLabel=None, useOneHot=False, balanced=False):
     reviews, labels = [], []
     labelCounts = {i+1:0 for i in range(NUM_CLASSES)}
     
-    # Read in an equal number of each class
     with io.open('data/yelp_academic_dataset_review.json', 'r', encoding='utf-8') as savefile:
         for i, line in enumerate(savefile):
             # Output progress
             if i%100==0:
                 print i
             
-            # Load review and add to list if numPerLabel for the label is not yet reached
+            # Reached threshold for total number of training examples
+            if numTotal and i == numTotal:
+                break
+            
+            # Load review
             review = json.loads(line)
             label = review['stars']
-            if all([count >= numPerLabel for count in labelCounts.values()]):
-                break
-            elif labelCounts[label] >= numPerLabel:
-                continue
-            else:
-                labelCounts[label] += 1
-                label = makeOneHot(label,NUM_CLASSES) if useOneHot else label
-                reviews.append(review)
-                labels.append(label)
+            
+            # If balanced is True, read in an equal number of each class
+            if balanced:
+                if all([count >= numPerLabel for count in labelCounts.values()]):
+                    break
+                elif balanced and labelCounts[label] >= numPerLabel:
+                    continue
+      
+            labelCounts[label] += 1
+            label = makeOneHot(label,NUM_CLASSES) if useOneHot else label
+            reviews.append(review)
+            labels.append(label)
   
     return np.array(reviews), np.array(labels)

@@ -17,3 +17,12 @@ def readOneHot(a):
 
 def myProduct(dicts):
     return (dict(itertools.izip(dicts, x)) for x in itertools.product(*dicts.itervalues()))
+
+def softmax(x):
+    max_elements = np.max(x, axis=1)
+    x -= max_elements.reshape(x.shape[0], 1)
+    
+    exp = np.exp(x)
+    sums = np.sum(exp, axis=1).reshape(x.shape[0], 1)
+    x = exp / sums
+    return x
