@@ -122,7 +122,7 @@ def run(args=None):
 
 
     if evaluate_accuracy_while_training:
-        # pdb.set_trace()
+        pdb.set_trace()
         print train_accuracies
         print dev_accuracies
         # TODO:

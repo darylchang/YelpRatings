@@ -37,25 +37,151 @@ class RNTN:
         self.dbs = np.empty((self.outputDim))
 
     def costAndGrad(self,mbdata,test=False): 
-        cost = 0.0
+        """
+        Computes cost and gradients for mini-batch data.
+        Data is propagated and back-propagated in each tree.
+        :param mini_batch_data: List of data pieces (i.e. trees).
+        :return: Cost, Gradients of W, W_s, b, b_s, L.
+        """
+
+        cost, total = 0.0, 0.0
         correct = []
         guess = []
-        total = 0.0
+        self.L, self.V, self.W, self.b, self.Ws, self.bs = self.stack
 
-        return cost, []
+        # Set gradients to zero.
 
-    def forwardProp(self,node):
-        cost = total = 0.0
+        self.dV[:] = 0
+        self.dW[:] = 0
+        self.db[:] = 0
+        self.dWs[:] = 0
+        self.dbs[:] = 0
 
-        
+        self.dL = collections.defaultdict(self.defaultVec)
 
-        return cost,total + 1
+        # Propagate data in each tree in a mini-batch fashion.
+        # --------------------------
+
+        for tree in mbdata:
+            c, tot = self.forwardProp(tree.root, correct, guess)
+            cost += c
+            total += tot
+        if test:
+            return (1./len(mbdata))*cost, correct, guess, total
+
+        # Back-propagate data in each tree.
+        # --------------------------
+        for tree in mbdata:
+            self.backProp(tree.root)
+
+        # Scale cost and gradients by mini-bach size.
+        # --------------------------
+        scale = (1./self.mbSize)
+        for v in self.dL.itervalues():
+            v *= scale
+
+        # Add L2 Regularization term.
+        # --------------------------
+        cost += self.rho / 2 * np.sum(self.V ** 2)
+        cost += self.rho / 2 * np.sum(self.W ** 2)
+        cost += self.rho / 2 * np.sum(self.Ws ** 2)
+
+        return scale*cost, [self.dL, scale*(self.dV + self.rho * self.V),
+                            scale * (self.dW + self.rho * self.W), scale * self.db,
+                            scale * (self.dWs + self.rho * self.Ws), scale * self.dbs]
+
+    def forwardProp(self,node, correct, guess):
+        """
+        Forward propagation at node.
+        :return: (Cross-entropy cost,
+        Number of correctly classified items,
+        Number of classified items).
+        """
+
+        cost, total = 0.0, 0.0
+
+        if node.isLeaf:
+            # Hidden activations at leaves are occurences of self.word.
+            node.hActs1 = self.L[:, node.word]
+            node.fprop = True
+
+        else:
+            if not node.left.fprop:
+                c, tot = self.forwardProp(node.left, correct, guess)
+                cost += c
+                total += tot
+
+            if not node.right.fprop:
+                c, tot = self.forwardProp(node.right, correct, guess)
+                cost += c
+                total += tot
+
+            # Stack left-right children word vectors. Compute matrix operations for parent vector.
+            lr = np.hstack([node.left.hActs1, node.right.hActs1])
+            node.hActs1 = np.dot(self.W, lr) + self.b
+            node.hActs1 += np.tensordot(self.V, np.outer(lr, lr), axes=([1, 2], [0, 1]))
+
+            # Compute parent vector.
+            node.hActs1 = np.tanh(node.hActs1)
+
+        # Compute classification labels via softmax.
+        node.probs = np.dot(self.Ws, node.hActs1) + self.bs
+        node.probs -= np.max(node.probs)
+        node.probs = np.exp(node.probs)
+        node.probs = node.probs/np.sum(node.probs)
+        node.fprop = True
+
+        correct.append(node.label)
+        guess.append(np.argmax(node.probs))
+
+        return cost - np.log(node.probs[node.label]), total + 1
 
 
     def backProp(self,node,error=None):
 
-        # Clear nodes
+        """
+        Backward propagation in node.
+        """
+
+        # Clear node.
         node.fprop = False
+
+        # Softmax gradients.
+        # --------------------------
+        softmax_node_error = node.probs  # Predicted distribution
+        softmax_node_error[node.label] -= 1.0  # Targeted distribution equals 1 for node.label, else 0.
+
+        self.dWs += np.outer(softmax_node_error, node.hActs1)
+        self.dbs += softmax_node_error
+        softmax_node_error = np.dot(self.Ws.T, softmax_node_error)
+
+        if error is not None:
+            # To back-propagate error recursively
+            softmax_node_error += error
+
+        softmax_node_error *= (1 - node.hActs1 ** 2)
+
+        # Update L at leaf nodes.
+        if node.isLeaf:
+            self.dL[node.word] += softmax_node_error
+            return
+
+        # Hidden gradients.
+        # --------------------------
+        if not node.isLeaf:
+            lr = np.hstack([node.left.hActs1, node.right.hActs1])  # Left-right stacked activation
+            outer = np.outer(softmax_node_error, lr)
+
+            self.dV += (np.outer(lr, lr)[:, :, None] * softmax_node_error).T
+            self.dW += outer
+            self.db += softmax_node_error
+
+            # Compute error for children.
+            softmax_node_error = np.dot(self.W.T, softmax_node_error)
+            softmax_node_error += np.tensordot(self.V.transpose((0, 2, 1)) + self.V,
+                                               outer.T, axes=([1, 0], [0, 1]))
+            self.backProp(node.left, softmax_node_error[:self.wvecDim])
+            self.backProp(node.right, softmax_node_error[self.wvecDim:])
 
         
     def updateParams(self,scale,update,log=False):
