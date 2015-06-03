@@ -1,16 +1,10 @@
 import array, io, json, collections
+from utils import *
 import numpy as np
+from collections import defaultdict
+import random
 
-def generateFeatures(gloveVecs, reviews):
-    features = []
-    for review in reviews:
-        text = review['text']
-        featureVec = np.mean([gloveVecs[token] for token in text.split() if token in gloveVecs], axis=0)
-        if featureVec.size and not np.any(np.isnan(featureVec)):
-            features.append(featureVec)
-        else:
-            features.append(np.zeros(features[0].shape[0]))   
-    return np.array(features)
+NUM_CLASSES = 5
 
 # Adapted from maciejkula
 # Read in the GloVe vector data
@@ -21,23 +15,34 @@ def readGlove():
             if i%100==0:
                 print i
             tokens = line.split(' ')
-
             word = tokens[0]
             entries = tokens[1:]
-
             dct[word] = np.array([float(x) for x in entries])
     return dct
 
 # Read in the Yelp review data
-def readYelpReviews(cutoff=None):
+def readYelpReviews(numPerLabel=None, useOneHot=False):
     reviews, labels = [], []
+    labelCounts = {i+1:0 for i in range(NUM_CLASSES)}
+    
+    # Read in an equal number of each class
     with io.open('data/yelp_academic_dataset_review.json', 'r', encoding='utf-8') as savefile:
         for i, line in enumerate(savefile):
+            # Output progress
             if i%100==0:
                 print i
-            if cutoff and i > cutoff:
-                break
+            
+            # Load review and add to list if numPerLabel for the label is not yet reached
             review = json.loads(line)
-            reviews.append(review)
-            labels.append(review['stars'])
+            label = review['stars']
+            if all([count >= numPerLabel for count in labelCounts.values()]):
+                break
+            elif labelCounts[label] >= numPerLabel:
+                continue
+            else:
+                labelCounts[label] += 1
+                label = makeOneHot(label,NUM_CLASSES) if useOneHot else label
+                reviews.append(review)
+                labels.append(label)
+  
     return np.array(reviews), np.array(labels)
