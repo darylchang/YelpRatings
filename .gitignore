@@ -5,3 +5,4 @@ word2vec.txt
 *.pyc
 dlchang_milestone.pdf
 .DS_Store
+/parser/*
